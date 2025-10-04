@@ -1,7 +1,6 @@
 # Banking Example Federated Identity on the Blockchain
 
-An **end-to-end enterprise-grade demo** that unites **9 core identity concepts** — from decentralized KYC to blockchain-backed consent and CBDC identity gating — using **DIDs, Verifiable Credentials (VCs)**, and a **permissioned blockchain (Hyperledger Besu)**.  
-It integrates seamlessly with **OIDC, WebAuthn passkeys**, and enterprise identity providers (Okta, Ping, Microsoft Entra).
+A complete enterprise-level demonstration that brings together nine core identity concepts, ranging from decentralized KYC to blockchain-based consent and CBDC identity control. It uses DIDs, Verifiable Credentials, and a permissioned blockchain built on Hyperledger Besu. The solution works smoothly with OIDC, WebAuthn passkeys, and enterprise identity providers.
 
 ---
 

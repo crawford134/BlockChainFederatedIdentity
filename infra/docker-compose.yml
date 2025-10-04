@@ -1,0 +1,8 @@
+# docker-compose.yml (skeleton) - Fill with real Besu/Nethermind images for a local devnet.
+version: "3.8"
+services:
+  besu-node1:
+    image: hyperledger/besu:latest
+    command: ["--network=dev"]
+    ports: ["8545:8545","8546:8546"]
+  # Add node2, node3 for consortium members (Bank A, Bank B, Regulator)

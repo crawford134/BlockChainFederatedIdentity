@@ -60,17 +60,22 @@ It integrates seamlessly with **OIDC, WebAuthn passkeys**, and enterprise identi
 
 ## Architecture
 
+```
 [ Identity Wallet (mobile/web) ]
-| WebAuthn (passkey) + VC Presentations
-v
-[ OIDC Bridge + VC Verifier ] ---> [ Bank A / Bank B / Fintech ]
-| |
-v v
-[ EVM Smart Contracts ] <-------- [ API Gateways ]
-| IssuerRegistry | ConsentManager | RevocationList | AuditLog
-| CBDCToken + IdentityGate
-|
-+--> [ Regulator Node + Portal ]
+   | WebAuthn (passkey)        | VC Presentations (DID, SD-JWT/BBS+)
+   v                           v
+[ OIDC Bridge + VC Verifier ]  ---> [ RP Gateway (Bank A/B/Fintech) ]
+           |                                |
+           v                                v
+   [ EVM Contracts ] <---------------- [ API Gateways ]
+   |  IssuerRegistry
+   |  RevocationList
+   |  ConsentManager  <---- Fintech Consent Reads/Writes
+   |  AuditLog
+   |  CBDCToken + IdentityGate (pre-transfer checks)
+   |
+   +--> [ Regulator Reader Node + Portal ]
+```
 
 ---
 
@@ -87,6 +92,15 @@ v v
 | **Audit Portal** | React or Flask app reading from chain via `ethers.js` |
 
 ---
+
+## Modules
+- `contracts/`: Solidity contracts (IssuerRegistry, RevocationList, ConsentManager, AuditLog, CBDCToken).
+- `rp-gateways/`: Relying party gateway stubs (Bank A, Bank B, Fintech) with VC verification & WebAuthn handshakes.
+- `issuer-tools/`: CLI stubs for issuing/anchoring/revoking VCs.
+- `bridge/`: OIDC bridge (presentation requests) + VC verifier utilities.
+- `regulator-portal/`: Minimal portal that reads on-chain state and displays audit anchors.
+- `wallet/`: Notes on wallet setup options (Entra Verified ID, Aries/Indy, SD-JWT), plus demo scripts.
+- `infra/`: Docker compose skeleton and network notes for a Besu devnet.
 
 ## Smart Contracts Overview
 

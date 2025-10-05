@@ -1,0 +1,36 @@
+name: Deploy Prod
+
+on:
+  workflow_dispatch:   # manually triggered in GitHub UI
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod   # links to your "prod" environment in Settings
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build
+        run: forge build
+
+      - name: Deploy to prod
+        env:
+          RPC_URL: ${{ secrets.PROD_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
+        run: |
+          echo "Deploying to $RPC_URL"
+          forge script script/Deploy.s.sol:Deploy \
+            --rpc-url "$RPC_URL" \
+            --private-key "$PRIVATE_KEY" \
+            --broadcast -vv | tee deploy.log
+
+      - name: Extract contract addresses
+        run: |
+          awk '/IssuerRegistry|RevocationList|ConsentManager|AuditLog|IdentityGate|CBDCToken/ {print}' deploy.log | tee addresses.txt

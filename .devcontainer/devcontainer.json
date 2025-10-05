@@ -1,0 +1,21 @@
+{
+  "name": "omni-demo",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [8545, 8546],
+  "postCreateCommand": "node -v && forge --version && besu --version || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "JuanBlanco.solidity",
+        "tintinweb.solidity-visual-auditor",
+        "ms-vscode.vscode-typescript-next"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

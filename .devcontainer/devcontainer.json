@@ -4,8 +4,8 @@
     "dockerfile": "Dockerfile",
     "args": {
       "USERNAME": "builder",
-      "USER_UID": "${localEnv:USER_UID}",
-      "USER_GID": "${localEnv:USER_GID}"
+      "USER_UID": "1000",
+      "USER_GID": "1000"
     }
   },
   "features": {

@@ -5,6 +5,18 @@ It integrates seamlessly with **OIDC, WebAuthn passkeys**, and enterprise identi
 
 ---
 
+## Quick start
+1. Open in GitHub Codespaces (or Docker dev container).
+2. Start Besu dev net: expose RPC 8545.
+3. Build contracts: `forge build`.
+4. Deploy: `forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast -vv`.
+
+## Deploy via GitHub Actions
+- Environments: `dev` and `prod` with secrets and variables.
+- Workflows: CI, Deploy Dev, Deploy Prod under `.github/workflows/`.
+
+---
+
 ## Objectives
 
 1. Decentralized SSO → Wallet login to two web apps (Bank A & Bank B) using VCs, no central IdP.

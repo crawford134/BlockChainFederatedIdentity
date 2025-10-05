@@ -12,7 +12,7 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "forwardPorts": [8545, 8546],
-  "postCreateCommand": "node -v && forge --version && besu --version || true",
+  "postCreateCommand": "/bin/bash -lc '.devcontainer/scripts/install-besu.sh || true; node -v; forge --version; besu --version || true'",
   "customizations": {
     "vscode": {
       "extensions": [

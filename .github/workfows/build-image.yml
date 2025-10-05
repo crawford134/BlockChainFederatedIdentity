@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        env: [dev, prod]
+        env: [Dev, Prod]
 
     # Pull the right Variables/Secrets for each environment
     environment: ${{ matrix.env }}

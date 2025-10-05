@@ -10,14 +10,15 @@
 ## Steps 
 
 1) **Configure Gitlab Repository**
-- intialize README, LICENSE, .gitignore, example .env file  
-- set up basic file structure 
-- enable branch protection for main branch 
- 1.2) Set up Development Environment/Container 
- - Create .devcontainerfolder and .devcontainer.json 
- - Create DockerFile for the .devcontainer.json 
+    1.1) Repository Initialization
+    - Create README, LICENSE, .gitignore, example .env file  
+    - set up basic file structure 
+    - enable branch protection for main branch 
+    1.2) Container Set Up  
+    - Create .devcontainerfolder and .devcontainer.json 
+    - Create DockerFile for the .devcontainer.json 
     - 
- 1.3) CI/CD Preparation 
+    1.3) CI/CD Preparation 
 - 
 2) **Set up GitHub Environments**
 

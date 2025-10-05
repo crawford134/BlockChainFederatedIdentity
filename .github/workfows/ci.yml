@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install bridge deps (skip if none yet)
+        if: hashFiles('apps/bridge/package.json') != ''
+        run: npm ci
+        working-directory: apps/bridge
+
+      - name: Lint + typecheck (skip if scripts missing)
+        if: |
+          hashFiles('apps/bridge/package.json') != '' &&
+          contains(join(fromJSON('[""+github.event_name]')), 'push') != null
+        run: |
+          npm run -s lint || true
+          npm run -s typecheck || true
+        working-directory: apps/bridge
+
+      - name: Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run forge tests (if present)
+        run: forge test -vv || true

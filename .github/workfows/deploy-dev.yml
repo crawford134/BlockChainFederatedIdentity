@@ -1,0 +1,41 @@
+name: Deploy Dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "contracts/**"
+      - "script/**"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build
+        run: forge build
+
+      - name: Deploy to dev
+        env:
+          RPC_URL: ${{ secrets.DEV_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.DEV_PRIVATE_KEY }}
+        run: |
+          echo "Deploying to $RPC_URL"
+          forge script script/Deploy.s.sol:Deploy \
+            --rpc-url "$RPC_URL" \
+            --private-key "$PRIVATE_KEY" \
+            --broadcast -vv | tee deploy.log
+
+      - name: Extract contract addresses
+        run: |
+          awk '/IssuerRegistry|RevocationList|ConsentManager|AuditLog|IdentityGate|CBDCToken/ {print}' deploy.log | tee addresses.txt

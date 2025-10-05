@@ -1,7 +1,12 @@
 {
   "name": "omni-demo",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USERNAME": "vscode",
+      "USER_UID": "${localEnv:USER_UID}",
+      "USER_GID": "${localEnv:USER_GID}"
+    }
   },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}

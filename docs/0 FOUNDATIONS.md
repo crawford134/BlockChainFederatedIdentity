@@ -16,8 +16,13 @@
     - enable branch protection for main branch 
     1.2) Container Set Up  
     - Create .devcontainerfolder and .devcontainer.json 
-    - Create DockerFile for the .devcontainer.json 
-    - 
+    - Create Dockerfile for the .devcontainer.json 
+    - Verify that the Dockerfile worked
+    ```
+    head -1 /etc/os-release    # Ubuntu
+    whoami                     # builder
+    node -v; forge --version; besu --version
+    ```
     1.3) CI/CD Preparation 
 - 
 2) **Set up GitHub Environments**

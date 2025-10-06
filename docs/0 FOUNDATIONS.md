@@ -20,7 +20,8 @@
     - Verify that the Dockerfile worked
     ```
     head -1 /etc/os-release    # Ubuntu
-    whoami                     # builder
+    whoami                     # vscode
+    id                         # around 1000
     node -v; forge --version; besu --version
     ```
     1.3) CI/CD Preparation 

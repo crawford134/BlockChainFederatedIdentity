@@ -22,10 +22,16 @@
     head -1 /etc/os-release    # Ubuntu
     whoami                     # vscode
     id                         # around 1000
-    node -v; forge --version; besu --version
+    node -v; npm -v; forge --version; cast --version; python3 --version; java -version
     ```
     1.3) CI/CD Preparation 
-- 
+    - 
+    - Verify with 
+    ```
+    gh secret list --env Dev
+    gh variable list --env Dev
+    ```
+
 2) **Set up GitHub Environments**
 
 
@@ -75,15 +81,24 @@ Create a dockerfile from ubuntu. Download it's core tools, Node.js, Java 17 for 
 
 ----
 
-1) Spin up a Besu dev network (fast path)
+## Checklist 
 
-Purpose: You are creating a shared trust ledger.
-This blockchain will hold the minimal data necessary for identity federation: which issuers are trusted, which credentials are revoked, which consents are active, and immutable audit anchors.
-
-What this gives you:
-- A neutral, tamper-resistant layer shared across institutions.
-- A place to record identity events without storing personal data.
-- Smart contracts that act as the “rules engine” of trust.
-
-When you run Besu locally, you simulate the consortium network that real banks would form — each operating its own validator node.
-Polygon testnet is a faster way to demo public EVM behavior, but a permissioned Besu network is what you’d use in production.
+| **Step**         | **Description**                                                                                    | **Status** |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ---------- |
+| **0.0.1**        | Create repository, `.gitignore`, `README.md`, and `LICENSE`                                        | ☐          |
+| **0.0.2**        | Enable branch protection and set default branch (`main`)                                           | ☐          |
+| **0.0.3**        | Enable **Codespaces** under *Settings → Codespaces*                                                | ☐          |
+| **0.1.1**        | Add `.devcontainer/devcontainer.json` and point to custom Dockerfile                               | ☐          |
+| **0.1.2**        | Confirm base image → `ubuntu-22.04`                                                                | ☐          |
+| **0.1.3**        | Confirm dependencies installed (`curl`, `git`, `unzip`, `openjdk-17-jdk`, etc.)                    | ☐          |
+| **0.1.4**        | Verify **Node 20**, **Python 3**, **Foundry (forge/cast)** install                                 | ☐          |
+| **0.1.5**        | Build Docker image successfully (`devcontainer rebuild --no-cache`)                                | ☐          |
+| **0.1.6**        | Validate PATH includes `/usr/local/bin` and tools (`forge`, `cast`, `besu`)                        | ☐          |
+| **0.1.7**        | Run `forge --version`, `cast --version`, `node -v`, `npm -v`, `python3 --version`, `java -version` | ☐          |
+| **0.1.8**        | Run `besu --version` or `install-besu latest` (verify installation)                                | ☐          |
+| **0.1.9**        | Confirm container user is non-root (`whoami` → `vscode` or `builder`)                              | ☐          |
+| **0.1.10**       | Confirm `/opt` and `/workspaces` are owned by current user                                         | ☐          |
+| **0.2.1**        | Define environment variables in **GitHub Actions → Environments**                                  | ☐          |
+| **0.2.2**        | Add required secrets (`DEV_NODE_ID`, `PROD_NODE_ID`, etc.)                                         | ☐          |
+| **0.2.3**        | Verify with `gh secret list` and `gh variable list`                                                | ☐          |
+| **✅ Completion** | All tools installed, user correct, and builds cleanly                                              | ☐          |

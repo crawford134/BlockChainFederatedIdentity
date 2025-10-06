@@ -14,8 +14,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # --- Install Foundry (Solidity toolchain) ---
 RUN curl -L https://foundry.paradigm.xyz | bash && \
     /root/.foundry/bin/foundryup && \
-    ln -s /root/.foundry/bin/forge /usr/local/bin/forge && \
-    ln -s /root/.foundry/bin/cast /usr/local/bin/cast
+    install -m 0755 /root/.foundry/bin/forge /usr/local/bin/forge && \
+    install -m 0755 /root/.foundry/bin/cast  /usr/local/bin/cast
 
 # --- Install Hyperledger Besu (for permissioned blockchain -> attempt, but don't fail the image if network breaks) ---
 ARG BESU_VERSION=24.5.0
@@ -25,7 +25,7 @@ RUN set -eux; \
     curl -fL -o "/tmp/${BESU_ZIP}.sha256" "https://github.com/hyperledger/besu/releases/download/${BESU_VERSION}/${BESU_ZIP}.sha256"; \
     (cd /tmp && sha256sum -c "${BESU_ZIP}.sha256"); \
     unzip -q "/tmp/${BESU_ZIP}" -d /opt; \
-    ln -sf "/opt/besu-${BESU_VERSION}/bin/besu" /usr/local/bin/besu; \
+    cp "/opt/besu-${BESU_VERSION}/bin/besu" /usr/local/bin/besu; \
     rm -f "/tmp/${BESU_ZIP}" "/tmp/${BESU_ZIP}.sha256"; \
   else \
     echo "WARNING: Besu ${BESU_VERSION} download failed; continuing without Besu."; \

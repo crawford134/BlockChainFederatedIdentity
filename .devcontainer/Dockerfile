@@ -4,72 +4,110 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 # --- Install dependencies ---
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
-    curl wget git unzip software-properties-common jq openjdk-17-jdk python3 python3-pip build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
+    curl wget git unzip ca-certificates software-properties-common jq openjdk-21-jdk python3 python3-pip build-essential \
+ && rm -rf /var/lib/apt/lists/*
+ 
 # --- Install Node.js LTS (v20) ---
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && node -v && npm -v
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y nodejs \
+ && node -v && npm -v
 
 # --- Install Foundry (Solidity toolchain) ---
-RUN curl -L https://foundry.paradigm.xyz | bash && \
-    /root/.foundry/bin/foundryup && \
-    install -m 0755 /root/.foundry/bin/forge /usr/local/bin/forge && \
-    install -m 0755 /root/.foundry/bin/cast  /usr/local/bin/cast
+RUN curl -L https://foundry.paradigm.xyz | bash \
+ && /root/.foundry/bin/foundryup \
+ && install -m 0755 /root/.foundry/bin/forge /usr/local/bin/forge \
+ && install -m 0755 /root/.foundry/bin/cast  /usr/local/bin/cast
 
-# --- Install Hyperledger Besu (for permissioned blockchain -> attempt, but don't fail the image if network breaks) ---
-ARG BESU_VERSION=24.5.0
-ARG BESU_ZIP=besu-${BESU_VERSION}.zip
+# --- Install Hyperledger Besu (enterprise Ethereum client)
+#     Works with "latest" or a pinned version; tries .tar.gz then .zip; non-blocking.
+ARG BESU_VERSION=latest
 RUN set -eux; \
-  if curl -fL -o "/tmp/${BESU_ZIP}" "https://github.com/hyperledger/besu/releases/download/${BESU_VERSION}/${BESU_ZIP}"; then \
-    curl -fL -o "/tmp/${BESU_ZIP}.sha256" "https://github.com/hyperledger/besu/releases/download/${BESU_VERSION}/${BESU_ZIP}.sha256"; \
-    (cd /tmp && sha256sum -c "${BESU_ZIP}.sha256"); \
-    unzip -q "/tmp/${BESU_ZIP}" -d /opt; \
-    cp "/opt/besu-${BESU_VERSION}/bin/besu" /usr/local/bin/besu; \
-    rm -f "/tmp/${BESU_ZIP}" "/tmp/${BESU_ZIP}.sha256"; \
+  VER="${BESU_VERSION}"; \
+  # Resolve latest tag (strip optional leading 'v')
+  if [ "$VER" = "latest" ]; then \
+    VER="$(curl -fsSL https://api.github.com/repos/hyperledger/besu/releases/latest \
+      | tr -d '\r' | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p')"; \
+  fi; \
+  echo "Using Besu version: ${VER}"; \
+  ASSET_EXT=""; \
+  for EXT in tar.gz zip; do \
+    URL="https://github.com/hyperledger/besu/releases/download/${VER}/besu-${VER}.${EXT}"; \
+    echo "Trying ${URL}"; \
+    if curl -fL -o "/tmp/besu.${EXT}" "$URL"; then ASSET_EXT="$EXT"; break; fi; \
+  done; \
+  if [ -n "$ASSET_EXT" ]; then \
+    # Try checksum (best effort)
+    curl -fL -o "/tmp/besu.${ASSET_EXT}.sha256" "https://github.com/hyperledger/besu/releases/download/${VER}/besu-${VER}.${ASSET_EXT}.sha256" \
+      && (cd /tmp && sha256sum -c "besu.${ASSET_EXT}.sha256") || echo "Checksum file not available; continuing."; \
+    # Unpack
+    if [ "$ASSET_EXT" = "tar.gz" ]; then \
+      tar -xzf /tmp/besu.tar.gz -C /opt; \
+    else \
+      unzip -q /tmp/besu.zip -d /opt; \
+    fi; \
+    ln -sf "/opt/besu-${VER}/bin/besu" /usr/local/bin/besu; \
+    rm -f /tmp/besu.*; \
   else \
-    echo "WARNING: Besu ${BESU_VERSION} download failed; continuing without Besu."; \
-    printf '#!/usr/bin/env sh\n>&2 echo "Besu not installed in image. Run: install-besu [version]"; exit 1\n' > /usr/local/bin/besu; \
+    echo "WARNING: Could not download Besu ${VER}; continuing without it."; \
+    printf '#!/usr/bin/env sh\n>&2 echo "Besu not installed in image. Run: install-besu [version|latest]"; exit 1\n' > /usr/local/bin/besu; \
     chmod +x /usr/local/bin/besu; \
   fi
 
-# --- Helper to install/repair Besu at runtime (inside the container) ---
+# --- Helper to install/repair Besu at runtime (inside the container)
 RUN cat > /usr/local/bin/install-besu <<'EOF' && chmod +x /usr/local/bin/install-besu
 #!/usr/bin/env bash
 set -euo pipefail
-VER="${1:-${BESU_VERSION:-24.5.0}}"
-ZIP="besu-${VER}.zip"
-URLS=(
-  "https://github.com/hyperledger/besu/releases/download/${VER}/${ZIP}"
-  "https://hyperledger.jfrog.io/artifactory/besu-binaries/${ZIP}"
-  "https://artifacts.hyperledger.org/besu-binaries/${ZIP}"
-)
-echo "Installing Besu ${VER}..."
-for url in "${URLS[@]}"; do
-  echo "Trying: $url"
-  if curl -fL -o "/tmp/${ZIP}" "$url"; then
-    echo "Downloaded from $url"
-    break
-  fi
+
+DEFAULT_VER="latest"
+VER="${1:-${BESU_VERSION:-$DEFAULT_VER}}"
+DEST_DIR="/opt"
+LINK="/usr/local/bin/besu"
+
+# sudo shim
+if command -v sudo >/dev/null 2>&1; then SUDO="sudo"; else SUDO=""; fi
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1"; exit 1; }; }
+need curl; need unzip; need sha256sum || true; # checksum best-effort
+
+# Resolve latest if requested
+if [ "$VER" = "latest" ]; then
+  VER="$(curl -fsSL https://api.github.com/repos/hyperledger/besu/releases/latest \
+      | tr -d '\r' | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p')"
+fi
+
+echo "Installing Besu ${VER} ..."
+ASSET_EXT=""
+for EXT in tar.gz zip; do
+  URL="https://github.com/hyperledger/besu/releases/download/${VER}/besu-${VER}.${EXT}"
+  echo "Trying ${URL}"
+  if curl -fL -o "/tmp/besu.${EXT}" "$URL"; then ASSET_EXT="$EXT"; break; fi
 done
-if [ ! -s "/tmp/${ZIP}" ]; then
-  echo "WARNING: Could not download Besu from any mirror. Aborting."; exit 0
+
+if [ -z "$ASSET_EXT" ]; then
+  echo "ERROR: Could not download Besu ${VER}. Check network or tag."; exit 1
 fi
-if curl -fL -o "/tmp/${ZIP}.sha256" "https://github.com/hyperledger/besu/releases/download/${VER}/${ZIP}.sha256"; then
-  ( cd /tmp && sha256sum -c "${ZIP}.sha256" )
+
+# Try checksum (best effort)
+if curl -fL -o "/tmp/besu.${ASSET_EXT}.sha256" \
+    "https://github.com/hyperledger/besu/releases/download/${VER}/besu-${VER}.${ASSET_EXT}.sha256"; then
+  (cd /tmp && sha256sum -c "besu.${ASSET_EXT}.sha256")
 else
-  echo "Note: checksum not verified (sha256 file unavailable for chosen mirror)."
+  echo "NOTE: checksum not available for this asset."
 fi
-sudo unzip -q "/tmp/${ZIP}" -d /opt
-sudo ln -sf "/opt/besu-${VER}/bin/besu" /usr/local/bin/besu
-rm -f "/tmp/${ZIP}" "/tmp/${ZIP}.sha256" || true
-echo "Besu ${VER} installed."
+
+$SUDO mkdir -p "${DEST_DIR}"
+if [ "$ASSET_EXT" = "tar.gz" ]; then
+  $SUDO tar -xzf /tmp/besu.tar.gz -C "${DEST_DIR}"
+else
+  $SUDO unzip -qo /tmp/besu.zip -d "${DEST_DIR}"
+fi
+
+$SUDO ln -sf "${DEST_DIR}/besu-${VER}/bin/besu" "${LINK}"
+rm -f /tmp/besu.* || true
+
+echo "Besu installed:"
+"${LINK}" --version || true
 EOF
-
-# --- To Verify Checksum of Besu download ---
-# ARG BESU_SHA256=...  # put the expected checksum here
-# RUN echo "$BESU_SHA256  /tmp/besu.zip" | sha256sum -c -
-
 
 # --- Clean up ---
 RUN apt-get clean
@@ -78,10 +116,9 @@ RUN apt-get clean
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
-
-RUN groupadd --gid ${USER_GID} ${USERNAME} || true && \
-    useradd -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} || true && \
-    chown -R ${USERNAME}:${USERNAME} /opt /root/.foundry
+RUN groupadd --gid ${USER_GID} ${USERNAME} || true \
+ && useradd -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} || true \
+ && chown -R ${USERNAME}:${USERNAME} /opt /root/.foundry
 
 USER ${USERNAME}
 WORKDIR /workspaces

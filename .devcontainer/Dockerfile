@@ -76,8 +76,8 @@ RUN apt-get clean
 
 # --- Create non-root builder user ---
 ARG USERNAME=builder
-ARG USER_UID=1000
-ARG USER_GID=1000
+ARG USER_UID=1010
+ARG USER_GID=1010
 
 RUN groupadd --gid ${USER_GID} ${USERNAME} || true && \
     useradd -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} || true && \

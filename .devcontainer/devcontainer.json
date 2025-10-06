@@ -3,7 +3,7 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      "USERNAME": "builder",
+      "USERNAME": "vscode",
       "USER_UID": "1000",
       "USER_GID": "1000"
     }
@@ -22,5 +22,5 @@
       ]
     }
   },
-  "remoteUser": "builder"
+  "remoteUser": "vscode"
 }

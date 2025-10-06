@@ -67,6 +67,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            USERNAME=builder
+            USERNAME=vscode
             USER_UID=${{ matrix.env == 'dev' && vars.DEV_USER_UID || vars.PROD_USER_UID }}
             USER_GID=${{ matrix.env == 'dev' && vars.DEV_USER_GID || vars.PROD_USER_GID }}

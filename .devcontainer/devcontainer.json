@@ -8,19 +8,45 @@
       "USER_GID": "1000"
     }
   },
+
+  "remoteUser": "vscode",
+
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
+
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.formatOnSave": true
+  },
+
   "forwardPorts": [8545, 8546],
-  "postCreateCommand": "/bin/bash -lc 'command -v forge >/dev/null || (curl -L https://foundry.paradigm.xyz | bash && ~/.foundry/bin/foundryup && sudo install -m 0755 ~/.foundry/bin/forge /usr/local/bin/forge && sudo install -m 0755 ~/.foundry/bin/cast /usr/local/bin/cast); command -v besu >/dev/null  || (command -v install-besu >/dev/null && install-besu 24.5.0 || true); forge --version || true; besu --version || true'",
+
+  "portsAttributes": {
+    "8545": { "label": "JSON-RPC", "onAutoForward": "notify" },
+    "8546": { "label": "WS-RPC", "onAutoForward": "notify" }
+  },
+
   "customizations": {
     "vscode": {
       "extensions": [
         "JuanBlanco.solidity",
         "tintinweb.solidity-visual-auditor",
-        "ms-vscode.vscode-typescript-next"
+        "ms-vscode.vscode-typescript-next",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "tamasfe.even-better-toml",
+        "nomicfoundation.hardhat-solidity"
       ]
     }
   },
-  "remoteUser": "vscode"
+
+  "mounts": [
+    "source=devcontainer-npm-cache,target=/home/vscode/.npm,type=volume",
+    "source=devcontainer-foundry-cache,target=/home/vscode/.foundry,type=volume"
+  ],
+
+  "postCreateCommand": "/bin/bash -lc '\n  set -euo pipefail\n  echo \"[postCreate] Starting setup…\"\n\n  # --- Ensure GitHub CLI is available ---\n  if ! command -v gh >/dev/null 2>&1; then\n    echo \"[postCreate] Installing GitHub CLI…\"\n    sudo apt-get update -y && sudo apt-get install -y gh || true\n  fi\n  gh --version || true\n\n  # --- Auth with GitHub if not already ---\n  if ! gh auth status >/dev/null 2>&1; then\n    echo \"[postCreate] Logging into GitHub CLI…\"\n    gh auth login --web || true\n  fi\n\n  # --- Ensure Foundry (forge/cast) is available ---\n  if ! command -v forge >/dev/null 2>&1; then\n    echo \"[postCreate] Installing Foundry…\"\n    curl -L https://foundry.paradigm.xyz | bash\n    ~/.foundry/bin/foundryup\n    sudo install -m 0755 ~/.foundry/bin/forge /usr/local/bin/forge\n    sudo install -m 0755 ~/.foundry/bin/cast  /usr/local/bin/cast\n  fi\n\n  # --- Ensure Besu (best-effort; do not fail container) ---\n  if ! command -v besu >/dev/null 2>&1; then\n    echo \"[postCreate] Installing Besu (best-effort)…\"\n    if command -v install-besu >/dev/null 2>&1; then\n      install-besu 24.10.1 || true\n    else\n      echo \"[postCreate] install-besu helper not found; skipping Besu install\"\n    fi\n  fi\n\n  # --- Run environment verifier if present ---\n  if [ -x ./scripts/verify-env.sh ]; then\n    echo \"[postCreate] Running scripts/verify-env.sh…\"\n    ./scripts/verify-env.sh || true\n  else\n    echo \"[postCreate] (info) scripts/verify-env.sh not found; skipping\"\n  fi\n\n  # --- Print versions summary ---\n  echo \"[postCreate] Versions:\"\n  node -v   || true\n  npm -v    || true\n  forge --version || true\n  cast --version  || true\n  besu --version  || true\n  gh auth status  || true\n  echo \"[postCreate] Done.\"\n'",
+
+  "postStartCommand": "/bin/bash -lc 'echo PATH=$PATH; whoami; pwd'"
 }

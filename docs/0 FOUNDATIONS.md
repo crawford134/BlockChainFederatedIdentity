@@ -26,14 +26,6 @@
     whoami                     # vscode
     id                         # around 1000
     node -v; npm -v; forge --version; cast --version; python3 --version; java -version; gh --version; 
-    gh auth status             # Logged in to github.com 
-    ```
-    1.3) CI/CD Preparation 
-    - 
-    - Verify with 
-    ```
-    gh secret list --env Dev
-    gh variable list --env Dev
     ```
 
 2) **Set up GitHub Environments**
@@ -79,6 +71,28 @@
 | **DEV_IDENTITY_GATE_ADDR** / **PROD_IDENTITY_GATE_ADDR**                 | Address of the IdentityGate contract.                               |
 | **DEV_CBDC_TOKEN_ADDR** / **PROD_CBDC_TOKEN_ADDR**                       | Address of the CBDCToken contract.                                  |
 | **DEV_REGULATOR_READONLY_RPC_URL** / **PROD_REGULATOR_READONLY_RPC_URL** | Optional — read-only RPC for regulator dashboards.                  |
+
+4) CI/CD Preparation  
+    - Verify with 
+    ```
+    gh auth status             # Logged in to github.com account crawford134 
+    ./scripts/verify-env.sh     # Should see GitLab Secrets & Variables
+    gh api "repos/:owner/:repo/environments" --jq '.environments[].name'    #Dev, Prod
+    ```
+
+    If verify-env.sh fails: 
+    ```
+    gh repo view --json viewerPermission -q .viewerPermission       # Expect: "ADMIN" (or at least "MAINTAIN")
+    gh auth status
+    gh auth refresh -h github.com -s repo,workflow
+    gh auth logout -h github.com
+    unset GITHUB_TOKEN
+    echo 'unset GITHUB_TOKEN' >> ~/.bashrc
+    source ~/.bashrc
+    gh auth login --web --scopes "repo,workflow,read:packages"
+    Select HTTPS 
+    Select Y
+    ```
 
 ----
 

@@ -14,15 +14,19 @@
     - Create README, LICENSE, .gitignore, example .env file  
     - set up basic file structure 
     - enable branch protection for main branch 
+    - Create a codespace environment on main. 
+
     1.2) Container Set Up  
     - Create .devcontainerfolder and .devcontainer.json 
     - Create Dockerfile for the .devcontainer.json 
+        In the codespace environment confirm the set up so that it meets the prerequisites. Create a dockerfile from ubuntu. Download it's core tools, Node.js, Java 17 for Besu, Foundry (Solidity toolchain), Hyperledger Besu (use a stable release - https://github.com/hyperledger/besu/releases), 
     - Verify that the Dockerfile worked
     ```
     head -1 /etc/os-release    # Ubuntu
     whoami                     # vscode
     id                         # around 1000
-    node -v; npm -v; forge --version; cast --version; python3 --version; java -version
+    node -v; npm -v; forge --version; cast --version; python3 --version; java -version; gh --version; 
+    gh auth status             # Logged in to github.com 
     ```
     1.3) CI/CD Preparation 
     - 
@@ -34,10 +38,7 @@
 
 2) **Set up GitHub Environments**
 
-
-Create a codespace environment on main 
-In the codespace environment confirm the set up so that it meets the prerequisites 
-Create a dockerfile from ubuntu. Download it's core tools, Node.js, Java 17 for Besu, Foundry (Solidity toolchain), Hyperledger Besu (use a stable release - https://github.com/hyperledger/besu/releases), 
+    GitHub → Repo → Settings → Environments → should list **Dev** and **Prod**
 
 3) **Create GitLab Secrets & Code Space Secrets**
 
@@ -101,4 +102,15 @@ Create a dockerfile from ubuntu. Download it's core tools, Node.js, Java 17 for 
 | **0.2.1**        | Define environment variables in **GitHub Actions → Environments**                                  | ☐          |
 | **0.2.2**        | Add required secrets (`DEV_NODE_ID`, `PROD_NODE_ID`, etc.)                                         | ☐          |
 | **0.2.3**        | Verify with `gh secret list` and `gh variable list`                                                | ☐          |
+| **0.2.4**        | Add required secrets (`DEV_NODE_ID`, `PROD_NODE_ID`, etc.)                                         | ☐          |
+| **0.2.5**        | Verify with `gh secret list` and `gh variable list`                                                | ☐          |
 | **✅ Completion** | All tools installed, user correct, and builds cleanly                                              | ☐          |
+
+| ✅ #   | Check                                         | Where / What to Verify                                                                  |
+| ----- | --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 0.2.1 | Environments exist                            | GitHub → Repo → Settings → Environments → should list **Dev** and **Prod**              |
+| 0.2.2 | Environment Variables defined                 | Each environment has:<br> `NODE_ENV`, `CHAIN_ID`, `NETWORK_NAME`, `INFURA_NETWORK`      |
+| 0.2.3 | Secrets added to each environment             | Each environment has:<br>`PRIVATE_KEY`, `RPC_URL`, `API_KEY`, `DB_PASSWORD`, `GH_TOKEN` |
+| 0.2.4 | Secrets masking works                         | In Actions → select environment → click “Manage secrets” → green check marks            |
+| 0.2.5 | Optional: Codespace secrets for local testing | Profile → Settings → Codespaces → Secrets → same keys (prefixed `DEV_`) exist           |
+| 0.2.6 | Environment variables load in container       | `echo $NODE_ENV` → prints “development” (if loaded via `.env` or Codespace Secrets)     |

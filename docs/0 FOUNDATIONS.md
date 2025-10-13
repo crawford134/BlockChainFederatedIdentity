@@ -1,130 +1,205 @@
-# Foundations Development Plan 
+# Foundations Development Plan (Section 0)
 
-## Prequesites 
-- Docker
-- Node.js 20+ and npm
-- Foundry toolchain (curl -L https://foundry.paradigm.xyz | bash && foundryup)
-- Git
-- Visual Studio Code 
+> **Goal:** Ensure your development container, GitHub authentication, and environment configuration are fully working before proceeding to Section 1 (CI/CD + code integration).
 
-## Steps 
+---
 
-1) **Configure Gitlab Repository**
-    1.1) Repository Initialization
-    - Create README, LICENSE, .gitignore, example .env file  
-    - set up basic file structure 
-    - enable branch protection for main branch 
-    - Create a codespace environment on main. 
+## Prerequisites
 
-    1.2) Container Set Up  
-    - Create .devcontainerfolder and .devcontainer.json 
-    - Create Dockerfile for the .devcontainer.json 
-        In the codespace environment confirm the set up so that it meets the prerequisites. Create a dockerfile from ubuntu. Download it's core tools, Node.js, Java 17 for Besu, Foundry (Solidity toolchain), Hyperledger Besu (use a stable release - https://github.com/hyperledger/besu/releases), 
-    - Verify that the Dockerfile worked
-    ```
-    head -1 /etc/os-release    # Ubuntu
-    whoami                     # vscode
-    id                         # around 1000
-    node -v; npm -v; forge --version; cast --version; python3 --version; java -version; gh --version; 
-    ```
+Before starting in Codespaces, install these **locally**:
 
-2) **Set up GitHub Environments**
+| Tool | Version | Purpose |
+|------|----------|----------|
+| **Docker** | latest | Container runtime |
+| **Node.js** | 20 + | Smart contract scripts + backend tooling |
+| **npm** | 9 + | Package management |
+| **Foundry toolchain** | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` | Solidity compilation |
+| **Git** | latest | Version control |
+| **Visual Studio Code** | latest | IDE for Codespaces / Dev Containers |
 
-    GitHub → Repo → Settings → Environments → should list **Dev** and **Prod**
+---
 
-3) **Create GitLab Secrets & Code Space Secrets**
+## Step 0 — Repository & Dev Container Setup
 
-| Secret Name                                                        | Purpose                                                                         |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| **DEV_RPC_URL** / **PROD_RPC_URL**                                 | Blockchain node endpoint (e.g., Besu, Polygon, or testnet provider).            |
-| **DEV_PRIVATE_KEY** / **PROD_PRIVATE_KEY**                         | Deployer or signer key for contract deployment (or remove if you’re using KMS). |
-| **DEV_ISSUER_PRIVATE_JWK** / **PROD_ISSUER_PRIVATE_JWK**           | Private JSON Web Key used to sign Verifiable Credentials.                       |
-| **DEV_SESSION_SIGNING_SECRET** / **PROD_SESSION_SIGNING_SECRET**   | Used by the bridge or verifier service to sign sessions or cookies.             |
-| **DEV_AUTH0_M2M_CLIENT_SECRET** / **PROD_AUTH0_M2M_CLIENT_SECRET** | Auth0 Machine-to-Machine secret for bridge authentication.                      |
-| **DEV_DATABASE_URL** / **PROD_DATABASE_URL**                       | Connection string for your PostgreSQL or other database.                        |
-| **DEV_REDIS_URL** / **PROD_REDIS_URL**                             | Redis cache connection string.                                                  |
-| **DEV_ENCRYPTION_KEY** / **PROD_ENCRYPTION_KEY**                   | AES key for encrypting off-chain data or user consent payloads.                 |
-| **DEV_GATEWAY_SHARED_SECRET** / **PROD_GATEWAY_SHARED_SECRET**     | Shared secret between your API gateway and verifier bridge.                     |
-| **DEV_AUTH0_MANAGEMENT_TOKEN** / **PROD_AUTH0_MANAGEMENT_TOKEN**   | Optional token for Auth0 Management API calls.                                  |
-| **DEV_NPM_TOKEN** / **PROD_NPM_TOKEN**                             | (Optional) Token for installing private npm packages in CI.                     |
-| **DEV_SLACK_WEBHOOK_URL** / **PROD_SLACK_WEBHOOK_URL**             | (Optional) Slack alert webhook for deployment notifications.                    |
+### **0.0 – Repository Initialization**
 
-4) Create Gitlab Repo & Codespace Variables 
+1. Create a **new GitHub repository**.  
+2. Add base files:
+   - `README.md`
+   - `LICENSE`
+   - `.gitignore`
+   - `example.env`
+3. Create folder structure: `/contracts`, `/scripts`, `/tests`, `/docker`, etc.  
+4. Protect the **main branch** (require PR + review + CI).  
+5. Enable **Codespaces**:  
+   → `Settings → Codespaces → Allow Codespaces for this repo`.
 
-| Variable Name                                                            | Purpose                                                             |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| **DEV_CHAIN_ID** / **PROD_CHAIN_ID**                                     | Chain identifier to prevent accidental cross-deploys.               |
-| **DEV_ISSUER_DID** / **PROD_ISSUER_DID**                                 | DID of your issuing entity.                                         |
-| **DEV_ISSUER_KID** / **PROD_ISSUER_KID**                                 | Key ID that matches your DID document’s verification method.        |
-| **DEV_DID_WEB_BASE_URL** / **PROD_DID_WEB_BASE_URL**                     | Base URL that hosts your DID document (e.g., GitHub Pages, domain). |
-| **DEV_JWT_ISSUER** / **PROD_JWT_ISSUER**                                 | “iss” claim for bridge-minted JWTs.                                 |
-| **DEV_JWT_AUDIENCE** / **PROD_JWT_AUDIENCE**                             | “aud” claim — relying party or consumer service.                    |
-| **DEV_VC_SCHEMA_KYC** / **PROD_VC_SCHEMA_KYC**                           | Canonical schema string for KYC credentials.                        |
-| **DEV_VC_SCHEMA_GOVID** / **PROD_VC_SCHEMA_GOVID**                       | Schema string for government ID credentials.                        |
-| **DEV_AUTH0_DOMAIN** / **PROD_AUTH0_DOMAIN**                             | Your Auth0 tenant domain (e.g., `yourtenant.us.auth0.com`).         |
-| **DEV_AUTH0_AUDIENCE** / **PROD_AUTH0_AUDIENCE**                         | API audience defined in Auth0.                                      |
-| **DEV_ALLOWED_RP_DIDS** / **PROD_ALLOWED_RP_DIDS**                       | Comma-separated list of allowed relying party DIDs.                 |
-| **DEV_ISSUER_REGISTRY_ADDR** / **PROD_ISSUER_REGISTRY_ADDR**             | Address of the deployed IssuerRegistry contract.                    |
-| **DEV_REVOCATION_LIST_ADDR** / **PROD_REVOCATION_LIST_ADDR**             | Address of the deployed RevocationList contract.                    |
-| **DEV_CONSENT_MANAGER_ADDR** / **PROD_CONSENT_MANAGER_ADDR**             | Address of the ConsentManager contract.                             |
-| **DEV_AUDIT_LOG_ADDR** / **PROD_AUDIT_LOG_ADDR**                         | Address of the AuditLog contract.                                   |
-| **DEV_IDENTITY_GATE_ADDR** / **PROD_IDENTITY_GATE_ADDR**                 | Address of the IdentityGate contract.                               |
-| **DEV_CBDC_TOKEN_ADDR** / **PROD_CBDC_TOKEN_ADDR**                       | Address of the CBDCToken contract.                                  |
-| **DEV_REGULATOR_READONLY_RPC_URL** / **PROD_REGULATOR_READONLY_RPC_URL** | Optional — read-only RPC for regulator dashboards.                  |
+---
 
-4) CI/CD Preparation  
-    - Verify with 
-    ```
-    gh auth status             # Logged in to github.com account crawford134 
-    ./scripts/verify-env.sh     # Should see GitLab Secrets & Variables
-    gh api "repos/:owner/:repo/environments" --jq '.environments[].name'    #Dev, Prod
-    ```
+### **0.1 – Container Configuration**
 
-    If verify-env.sh fails: 
-    ```
-    gh repo view --json viewerPermission -q .viewerPermission       # Expect: "ADMIN" (or at least "MAINTAIN")
-    gh auth status
-    gh auth refresh -h github.com -s repo,workflow
-    gh auth logout -h github.com
-    unset GITHUB_TOKEN
-    echo 'unset GITHUB_TOKEN' >> ~/.bashrc
-    source ~/.bashrc
-    gh auth login --web --scopes "repo,workflow,read:packages"
-    Select HTTPS 
-    Select Y
-    ```
+**Goal:** All dependencies install successfully; Foundry + Besu work inside Codespaces.
 
-----
+1. Create `.devcontainer/`:
+```
+.devcontainer/
+├── devcontainer.json
+└── Dockerfile
+```
+2. Use the finalized `Dockerfile` (Ubuntu 22.04 + Node 20 + Foundry + Besu + Java 17).  
+3. Use the finalized `devcontainer.json` with the `postCreateCommand` that:
+- Installs GitHub CLI (`gh`) and authenticates with `CS_GH_PAT`.
+- Installs Foundry & Besu.
+- Runs `scripts/verify-env.sh` automatically.
+4. Rebuild:
+```bash 
+devcontainer rebuild --no-cache
+```
+5. Verify inside Codespace:
+```bash 
+head -1 /etc/os-release     # Ubuntu
+whoami                      # vscode
+id                          # uid=1000
+node -v; npm -v
+forge --version; cast --version
+python3 --version; java -version
+gh --version; gh auth status
+```
+6. Confirm path and tools:
+```bash 
+echo $PATH | grep /usr/local/bin
+which forge cast besu
+```
+## 0.2 — Environment Configuration
 
-## Checklist 
+This section ensures that your GitHub repository has **Dev** and **Prod** environments set up correctly with the required **Secrets** and **Variables** for secure builds and deployments.
 
-| **Step**         | **Description**                                                                                    | **Status** |
-| ---------------- | -------------------------------------------------------------------------------------------------- | ---------- |
-| **0.0.1**        | Create repository, `.gitignore`, `README.md`, and `LICENSE`                                        | ☐          |
-| **0.0.2**        | Enable branch protection and set default branch (`main`)                                           | ☐          |
-| **0.0.3**        | Enable **Codespaces** under *Settings → Codespaces*                                                | ☐          |
-| **0.1.1**        | Add `.devcontainer/devcontainer.json` and point to custom Dockerfile                               | ☐          |
-| **0.1.2**        | Confirm base image → `ubuntu-22.04`                                                                | ☐          |
-| **0.1.3**        | Confirm dependencies installed (`curl`, `git`, `unzip`, `openjdk-17-jdk`, etc.)                    | ☐          |
-| **0.1.4**        | Verify **Node 20**, **Python 3**, **Foundry (forge/cast)** install                                 | ☐          |
-| **0.1.5**        | Build Docker image successfully (`devcontainer rebuild --no-cache`)                                | ☐          |
-| **0.1.6**        | Validate PATH includes `/usr/local/bin` and tools (`forge`, `cast`, `besu`)                        | ☐          |
-| **0.1.7**        | Run `forge --version`, `cast --version`, `node -v`, `npm -v`, `python3 --version`, `java -version` | ☐          |
-| **0.1.8**        | Run `besu --version` or `install-besu latest` (verify installation)                                | ☐          |
-| **0.1.9**        | Confirm container user is non-root (`whoami` → `vscode` or `builder`)                              | ☐          |
-| **0.1.10**       | Confirm `/opt` and `/workspaces` are owned by current user                                         | ☐          |
-| **0.2.1**        | Define environment variables in **GitHub Actions → Environments**                                  | ☐          |
-| **0.2.2**        | Add required secrets (`DEV_NODE_ID`, `PROD_NODE_ID`, etc.)                                         | ☐          |
-| **0.2.3**        | Verify with `gh secret list` and `gh variable list`                                                | ☐          |
-| **0.2.4**        | Add required secrets (`DEV_NODE_ID`, `PROD_NODE_ID`, etc.)                                         | ☐          |
-| **0.2.5**        | Verify with `gh secret list` and `gh variable list`                                                | ☐          |
-| **✅ Completion** | All tools installed, user correct, and builds cleanly                                              | ☐          |
+---
 
-| ✅ #   | Check                                         | Where / What to Verify                                                                  |
-| ----- | --------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 0.2.1 | Environments exist                            | GitHub → Repo → Settings → Environments → should list **Dev** and **Prod**              |
-| 0.2.2 | Environment Variables defined                 | Each environment has:<br> `NODE_ENV`, `CHAIN_ID`, `NETWORK_NAME`, `INFURA_NETWORK`      |
-| 0.2.3 | Secrets added to each environment             | Each environment has:<br>`PRIVATE_KEY`, `RPC_URL`, `API_KEY`, `DB_PASSWORD`, `GH_TOKEN` |
-| 0.2.4 | Secrets masking works                         | In Actions → select environment → click “Manage secrets” → green check marks            |
-| 0.2.5 | Optional: Codespace secrets for local testing | Profile → Settings → Codespaces → Secrets → same keys (prefixed `DEV_`) exist           |
-| 0.2.6 | Environment variables load in container       | `echo $NODE_ENV` → prints “development” (if loaded via `.env` or Codespace Secrets)     |
+### 0.2.1 — Create Environments
+
+1. Go to your repository’s **Settings → Environments**.  
+2. Click **“New environment”** and create two environments:
+   - **Dev**
+   - **Prod**
+3. Each environment will hold its own secrets and variables (used by the CI/CD pipelines).
+
+You can verify with:
+```bash
+gh api "repos/OWNER/REPO/environments" --jq '.environments[].name'
+``` 
+Expected output:
+```nginx
+Dev
+Prod
+```
+
+### 0.2.2 — Add Environment Secrets
+
+Add these secrets for both Dev and Prod under
+**Settings → Environments → [Dev/Prod] → Secrets → Add Secret.**
+
+| Secret                    | Description                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| `PRIVATE_KEY`             | Private deployer key (use a test wallet key for Dev).          |
+| `RPC_URL`                 | Blockchain RPC endpoint (e.g., Infura, Alchemy, or Besu node). |
+| `ISSUER_PRIVATE_JWK`      | Private JSON Web Key for signing Verifiable Credentials.       |
+| `SESSION_SIGNING_SECRET`  | Used to sign user sessions or JWT cookies.                     |
+| `AUTH0_M2M_CLIENT_SECRET` | Auth0 Machine-to-Machine secret (optional).                    |
+| `DATABASE_URL`            | Connection string for your PostgreSQL or MongoDB database.     |
+| `REDIS_URL`               | Redis cache connection URL.                                    |
+| `ENCRYPTION_KEY`          | AES-256 key for encrypting off-chain data.                     |
+| `GATEWAY_SHARED_SECRET`   | Shared secret between API gateway and verifier bridge.         |
+| `AUTH0_MANAGEMENT_TOKEN`  | Optional — for Auth0 Management API automation.                |
+| `NPM_TOKEN`               | Optional — for installing private npm packages.                |
+| `SLACK_WEBHOOK_URL`       | Optional — for deployment or security alerts.                  |
+
+> **Tip:** Prefix internal secrets with `DEV_` or `PROD_` in Codespaces if you want to use them locally
+
+Verify from your Codespace:
+```bash
+gh secret list --env Dev
+gh secret list --env Prod
+```
+
+### 0.2.3 — Add Environment Variables
+
+Add these variables for both Dev and Prod under
+**Settings → Environments → [Dev/Prod] → Variables → Add Variable.**
+| Variable                     | Example                                             | Purpose                                        |
+| ---------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `NODE_ENV`                   | `development` / `production`                        | Identifies environment context.                |
+| `CHAIN_ID`                   | `1337` / `1`                                        | Blockchain network identifier.                 |
+| `NETWORK_NAME`               | `besu-dev`                                          | Label for the target network.                  |
+| `INFURA_NETWORK`             | `sepolia`                                           | Optional — for connecting to a public testnet. |
+| `ISSUER_DID`                 | `did:web:issuer.example.org`                        | DID of the issuing authority.                  |
+| `ISSUER_KID`                 | `key-1`                                             | Key ID matching the DID Document.              |
+| `DID_WEB_BASE_URL`           | `https://issuer.example.org/.well-known`            | URL hosting DID Document.                      |
+| `JWT_ISSUER`                 | `did:web:issuer.example.org`                        | Issuer claim for JWTs.                         |
+| `JWT_AUDIENCE`               | `did:web:verifier.example.org`                      | Audience claim for JWTs.                       |
+| `VC_SCHEMA_KYC`              | `https://schemas.example.org/kyc.json`              | Schema for KYC credentials.                    |
+| `VC_SCHEMA_GOVID`            | `https://schemas.example.org/govid.json`            | Schema for Government ID credentials.          |
+| `AUTH0_DOMAIN`               | `tenant.us.auth0.com`                               | Your Auth0 tenant domain.                      |
+| `AUTH0_AUDIENCE`             | `https://api.example.org`                           | Audience for Auth0-secured APIs.               |
+| `ALLOWED_RP_DIDS`            | `did:web:app1.example.org,did:web:app2.example.org` | Relying parties allowed to verify.             |
+| `ISSUER_REGISTRY_ADDR`       | `0x123...abc`                                       | Address of deployed IssuerRegistry.            |
+| `REVOCATION_LIST_ADDR`       | `0x456...def`                                       | Address of deployed RevocationList.            |
+| `CONSENT_MANAGER_ADDR`       | `0x789...ghi`                                       | Address of ConsentManager contract.            |
+| `AUDIT_LOG_ADDR`             | `0xabc...123`                                       | Address of AuditLog contract.                  |
+| `IDENTITY_GATE_ADDR`         | `0xdef...456`                                       | Address of IdentityGate contract.              |
+| `CBDC_TOKEN_ADDR`            | `0xghi...789`                                       | Address of CBDCToken contract.                 |
+| `REGULATOR_READONLY_RPC_URL` | `https://regulator-node.example.org`                | Read-only RPC for regulator dashboards.        |
+
+Verify from your Codespace:
+```
+gh variable list --env Dev
+gh variable list --env Prod
+```
+
+### 0.2.4 — Verify Environment Setup 
+
+Run inside Codespace: bash Copy code
+```bash
+./scripts/verify-env.sh
+```
+Expected Output
+```yaml 
+🧭 Environment: Dev
+   ✅ PRIVATE_KEY
+   ✅ RPC_URL
+   ✅ NODE_ENV
+   ✅ CHAIN_ID
+   ✅ NETWORK_NAME
+🧭 Environment: Prod
+   ✅ PRIVATE_KEY
+   ✅ RPC_URL
+   ✅ NODE_ENV
+   ✅ CHAIN_ID
+   ✅ NETWORK_NAME
+```
+
+If you see `❌ Missing` errors or `403 Resource not accessible by integration`: * Ensure you’ve authenticated using a **classic PAT** (`CS_GH_PAT`). * Token must have: `repo`, `workflow`, `read:org` scopes. * Rebuild the Codespace after updating the PAT.
+
+---
+
+### Verification Commands
+
+| Command                                                              | Purpose                           |
+| -------------------------------------------------------------------- | --------------------------------- |
+| `gh auth status`                                                     | Check GitHub authentication.      |
+| `gh api "repos/OWNER/REPO/environments" --jq '.environments[].name'` | List environments.                |
+| `gh secret list --env Dev`                                           | List Dev secrets.                 |
+| `gh variable list --env Prod`                                        | List Prod variables.              |
+| `./scripts/verify-env.sh`                                            | Validate all variables + secrets. |
+
+---
+
+### Quick Fixes
+
+| Issue                               | Cause                       | Fix                                                            |
+| ----------------------------------- | --------------------------- | -------------------------------------------------------------- |
+| `403 Resource not accessible`       | Codespace ephemeral token   | Ensure `CS_GH_PAT` secret exists with `repo,workflow,read:org` |
+| `missing required scope 'read:org'` | Fine-grained PAT            | Use **classic PAT** + authorize SSO                            |
+| `verify-env.sh: Permission denied`  | Script not executable       | `chmod +x ./scripts/verify-env.sh`                             |
+| Missing secrets                     | Environment mis-match       | Add them in `Settings → Environments → [Dev/Prod]`             |
+| Nothing listed in `gh secret list`  | Using Codespace without PAT | Re-auth with `gh auth login --with-token`                      |

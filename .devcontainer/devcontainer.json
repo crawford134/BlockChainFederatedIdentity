@@ -21,7 +21,6 @@
   },
 
   "forwardPorts": [8545, 8546],
-
   "portsAttributes": {
     "8545": { "label": "JSON-RPC", "onAutoForward": "notify" },
     "8546": { "label": "WS-RPC", "onAutoForward": "notify" }
@@ -37,7 +36,7 @@
         "esbenp.prettier-vscode",
         "tamasfe.even-better-toml",
         "nomicfoundation.hardhat-solidity"
-      ]
+  ]
     }
   },
 
@@ -46,7 +45,7 @@
     "source=devcontainer-foundry-cache,target=/home/vscode/.foundry,type=volume"
   ],
 
-  "postCreateCommand": "/bin/bash -lc '\n  set -euo pipefail\n  echo \"[postCreate] Starting setup…\"\n\n  # --- Ensure GitHub CLI is available ---\n  if ! command -v gh >/dev/null 2>&1; then\n    echo \"[postCreate] Installing GitHub CLI…\"\n    sudo apt-get update -y && sudo apt-get install -y gh || true\n  fi\n  gh --version || true\n\n  # --- Auth with GitHub if not already ---\n  if ! gh auth status >/dev/null 2>&1; then\n    echo \"[postCreate] Logging into GitHub CLI…\"\n    gh auth login --web || true\n  fi\n\n  # --- Ensure Foundry (forge/cast) is available ---\n  if ! command -v forge >/dev/null 2>&1; then\n    echo \"[postCreate] Installing Foundry…\"\n    curl -L https://foundry.paradigm.xyz | bash\n    ~/.foundry/bin/foundryup\n    sudo install -m 0755 ~/.foundry/bin/forge /usr/local/bin/forge\n    sudo install -m 0755 ~/.foundry/bin/cast  /usr/local/bin/cast\n  fi\n\n  # --- Ensure Besu (best-effort; do not fail container) ---\n  if ! command -v besu >/dev/null 2>&1; then\n    echo \"[postCreate] Installing Besu (best-effort)…\"\n    if command -v install-besu >/dev/null 2>&1; then\n      install-besu 24.10.1 || true\n    else\n      echo \"[postCreate] install-besu helper not found; skipping Besu install\"\n    fi\n  fi\n\n  # --- Run environment verifier if present ---\n  if [ -x ./scripts/verify-env.sh ]; then\n    echo \"[postCreate] Running scripts/verify-env.sh…\"\n    ./scripts/verify-env.sh || true\n  else\n    echo \"[postCreate] (info) scripts/verify-env.sh not found; skipping\"\n  fi\n\n  # --- Print versions summary ---\n  echo \"[postCreate] Versions:\"\n  node -v   || true\n  npm -v    || true\n  forge --version || true\n  cast --version  || true\n  besu --version  || true\n  gh auth status  || true\n  echo \"[postCreate] Done.\"\n'",
+  "postCreateCommand": "/bin/bash -lc '\n  set -euo pipefail\n  echo \"[postCreate] Starting setup…\"\n\n  # --- Ensure GitHub CLI is available ---\n  if ! command -v gh >/dev/null 2>&1; then\n    echo \"[postCreate] Installing GitHub CLI…\"\n    sudo apt-get update -y && sudo apt-get install -y gh || true\n  fi\n  gh --version || true\n\n  # --- Clear ephemeral token and re-auth using Codespace secret ---\n  unset GITHUB_TOKEN || true\n  grep -qx \"unset GITHUB_TOKEN\" ~/.bashrc || echo \"unset GITHUB_TOKEN\" >> ~/.bashrc\n  gh auth logout -h github.com || true\n\n  if [ -n \"${CS_GH_PAT:-}\" ]; then\n    echo \"[postCreate] Logging into GitHub CLI using CS_GH_PAT secret…\"\n    printf \"%s\" \"$CS_GH_PAT\" | gh auth login --with-token --hostname github.com\n    gh auth setup-git\n    gh config set git_protocol https\n  else\n    echo \"[postCreate] No CS_GH_PAT found. Launching web-based login…\"\n    gh auth login --web --scopes \"repo,workflow,read:org\" || true\n  fi\n\n  echo \"[postCreate] Verifying GitHub CLI authentication...\"\n  gh auth status || true\n  gh api -i user | grep -i ^x-oauth-scopes: || true\n\n  # --- Ensure Foundry (forge/cast) is available ---\n  if ! command -v forge >/dev/null 2>&1; then\n    echo \"[postCreate] Installing Foundry…\"\n    curl -L https://foundry.paradigm.xyz | bash\n    ~/.foundry/bin/foundryup\n    sudo install -m 0755 ~/.foundry/bin/forge /usr/local/bin/forge\n    sudo install -m 0755 ~/.foundry/bin/cast  /usr/local/bin/cast\n  fi\n\n  # --- Ensure Besu (best-effort; do not fail container) ---\n  if ! command -v besu >/div/null 2>&1; then\n    echo \"[postCreate] Installing Besu (best-effort)…\"\n    if command -v install-besu >/dev/null 2>&1; then\n      install-besu 24.10.1 || true\n    else\n      echo \"[postCreate] install-besu helper not found; skipping Besu install\"\n    fi\n  fi\n\n  # --- Run environment verifier if present ---\n  if [ -x ./scripts/verify-env.sh ]; then\n    echo \"[postCreate] Running scripts/verify-env.sh…\"\n    sed -i \"s/\\r$//\" ./scripts/verify-env.sh || true\n    chmod +x ./scripts/verify-env.sh || true\n    ./scripts/verify-env.sh || true\n  else\n    echo \"[postCreate] (info) scripts/verify-env.sh not found; skipping\"\n  fi\n\n  # --- Print versions summary ---\n  echo \"[postCreate] Versions:\"\n  node -v   || true\n  npm -v    || true\n  forge --version || true\n  cast --version  || true\n  besu --version  || true\n  gh auth status  || true\n  echo \"[postCreate] Done.\"\n'",
 
-  "postStartCommand": "/bin/bash -lc 'echo PATH=$PATH; whoami; pwd'"
+  "postStartCommand": "/bin/bash -lc 'echo PATH=$PATH; whoami; pwd; gh --version; gh auth status || true'"
 }
